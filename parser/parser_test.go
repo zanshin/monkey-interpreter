@@ -8,6 +8,7 @@ import (
 	"github.com/zanshin/interpreter/lexer"
 )
 
+// TestLetStatements {{{
 func TestLetStatements(t *testing.T) {
 	tests := []struct {
 		input              string
@@ -15,8 +16,8 @@ func TestLetStatements(t *testing.T) {
 		expectedValue      interface{}
 	}{
 		{"let x = 5;", "x", 5},
-		{"let y = 10;", "y", 5},
-		{"let foobar = y", "foobar", "y"},
+		{"let y = 10;", "y", 10},
+		{"let foobar = y;", "foobar", "y"},
 	}
 
 	for _, tt := range tests {
@@ -41,6 +42,9 @@ func TestLetStatements(t *testing.T) {
 	}
 }
 
+// }}}
+
+// testLetStatement {{{
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	if s.TokenLiteral() != "let" {
 		t.Errorf("s.TokenLiteral() not 'let'. Got %q", s.TokenLiteral())
@@ -66,35 +70,47 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	return true
 }
 
-func TestReturnStatement(t *testing.T) {
-	input := `
-return 5;
-return 10;
-return 993322;
-`
+// }}}
 
-	l := lexer.New(input)
-	p := New(l)
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements. Got %d", len(program.Statements))
+// TestReturnStatements {{{
+func TestReturnStatements(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedValue interface{}
+	}{
+		{"return 5;", 5},
+		{"return foobar;", "foobar"},
 	}
 
-	for _, stmt := range program.Statements {
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("prgram.Statements does not contain 1 statement. Got %d", len(program.Statements))
+		}
+
+		stmt := program.Statements[0]
 		returnStmt, ok := stmt.(*ast.ReturnStatement)
 		if !ok {
-			t.Errorf("stmt not *ast.ReturnStatement. Got %T", stmt)
-			continue
+			t.Fatalf("stmt not *ast.ReturnStatement. Got %T", stmt)
 		}
 
 		if returnStmt.TokenLiteral() != "return" {
-			t.Errorf("returnStmt.TokenLiteral not 'return', got %q", returnStmt.TokenLiteral())
+			t.Fatalf("returnStmt.TokenLiteral not 'return', got %q", returnStmt.TokenLiteral())
+		}
+
+		if testLiteralExpression(t, returnStmt.ReturnValue, tt.expectedValue) {
+			return
 		}
 	}
 }
 
+// }}}
+
+// TestIdentifierExpressions {{{
 func TestIdentifierExpression(t *testing.T) {
 	input := "foobar;"
 
@@ -126,6 +142,9 @@ func TestIdentifierExpression(t *testing.T) {
 	}
 }
 
+// }}}
+
+// TestIntegerLiteralExpression {{{
 func TestIntegerLiteralExpression(t *testing.T) {
 	input := "5;"
 
@@ -157,6 +176,9 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	}
 }
 
+// }}}
+
+// TestParsingPrefixExpressions {{{
 func TestParsingPrefixExpressions(t *testing.T) {
 	prefixTests := []struct {
 		input        string
@@ -197,6 +219,9 @@ func TestParsingPrefixExpressions(t *testing.T) {
 	}
 }
 
+// }}}
+
+// TestParsingInfixExpressions {{{
 func TestParsingInfixExpression(t *testing.T) {
 	infixTests := []struct {
 		input      string
@@ -248,7 +273,10 @@ func TestParsingInfixExpression(t *testing.T) {
 	}
 }
 
-func TestOperatorOrecedenceParsing(t *testing.T) {
+// }}}
+
+// TestOperatorPrecedenceParsing {{{
+func TestOperatorPrecedenceParsing(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
@@ -314,10 +342,11 @@ func TestOperatorOrecedenceParsing(t *testing.T) {
 			t.Errorf("expected %q, got %q", tt.expected, actual)
 		}
 	}
-
 }
 
-// Test helpers
+// }}}
+
+// Test helpers {{{
 func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	integ, ok := il.(*ast.IntegerLiteral)
 	if !ok {
@@ -406,7 +435,9 @@ func testInfixExpression(
 
 }
 
-// Help for Parser errors
+// }}}
+
+// Help for Parser errors {{{
 func checkParserErrors(t *testing.T, p *Parser) {
 	errors := p.Errors()
 	if len(errors) == 0 {
@@ -420,3 +451,5 @@ func checkParserErrors(t *testing.T, p *Parser) {
 
 	t.FailNow()
 }
+
+// }}}
